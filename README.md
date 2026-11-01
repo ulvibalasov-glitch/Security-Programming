@@ -22,18 +22,22 @@ Out of scope for now (may be revisited in later checkpoints):
   ptrace/debugger access, OS-level memory forensics). These are noted as
   accepted risks in the threat model, not silently ignored.
 
-## Planned commands
+## Commands
+
+Passwords are never passed as arguments; they are always prompted (no echo).
+Each command unlocks the vault for its own duration and locks it again on exit.
 
 | Command | Description |
 |---|---|
-| `pm init` | Create a new vault: set master password, generate salt + KDF params, write empty encrypted vault. |
-| `pm unlock` | Prompt for master password, derive key, decrypt vault into memory for the session. |
-| `pm list` | List entry titles in the unlocked vault (no secrets shown). |
-| `pm get <title>` | Show a single entry's username/password (password masked by default, `--reveal` to print). |
-| `pm add <title>` | Add a new entry (prompts for username/password/notes). |
-| `pm edit <title>` | Modify an existing entry. |
-| `pm remove <title>` | Delete an entry. |
-| `pm lock` | Zero the in-memory key/vault and end the session. |
+| `init` | Create a new vault: choose a master password (min. 12 chars), generate salt + KDF params, write an empty encrypted vault. Refuses to overwrite an existing vault. |
+| `unlock` | Verify the master password (3 attempts, 1 s / 2 s backoff). |
+| `list` | List entry titles (no secrets shown). |
+| `get <title>` | Show an entry. Password is masked unless `--reveal` is given. |
+| `add <title>` | Add an entry (prompts for username / password / URL / notes). |
+| `edit <title>` | Modify an entry (Enter keeps the current value). |
+| `remove <title>` | Delete an entry after confirmation. |
+
+Use `--vault PATH` (before the command) to choose another vault file; default `vault.pm`.
 
 ## Vault file
 
@@ -43,38 +47,44 @@ details and the cryptographic rationale are in `docs/DESIGN.md`.
 
 ## Build & run
 
-Requirements: Python 3.11+ (reference implementation), `pip`.
+Requirements: Python 3.11+, `pip`, git.
 
 ```bash
 git clone <this-repo-url>
-cd password-manager
-python -m venv .venv
-source .venv/bin/activate        # .venv\Scripts\activate on Windows
-pip install -r requirements.txt  # argon2-cffi, cryptography
+cd Security-Programming
+python3 -m venv .venv
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
+pip install -r requirements.txt   # argon2-cffi, cryptography
 
 # first run
 python -m src init
-python -m src unlock
 python -m src add "example.com"
 python -m src list
-python -m src lock
+python -m src get "example.com"            # password masked
+python -m src get "example.com" --reveal   # password shown
+python -m src edit "example.com"
+python -m src remove "example.com"
+
+# tests (no extra dependencies)
+python -m unittest discover -v
 ```
 
 ## Project layout
 
 ```
 src/
-  crypto/      # key derivation (Argon2id) + AEAD encrypt/decrypt (AES-256-GCM)
-  user/        # master password setup/verification, session/lock state
-  storage/     # reads/writes the vault file, atomic writes, format versioning
-  interface/   # CLI command handlers
+  crypto/      # Argon2id key derivation + AES-256-GCM encrypt/decrypt (engine.py)
+  user/        # master password policy, unlock/lock state, entry validation (vault.py)
+  storage/     # vault file read/write, atomic writes, format version checks (vault_file.py)
+  interface/   # argparse CLI command handlers (cli.py)
 docs/
   DESIGN.md    # architecture diagram, threat model, crypto/format decisions
-tests/
+  PROGRESS.md  # Checkpoint 2 progress note
+tests/         # unittest suites for every module
 ```
 
 ## Status
 
-Checkpoint 1: design document + repository skeleton. No functional crypto
-code yet — module boundaries and interfaces are being fixed first so the
-threat model and the code stay consistent.
+Checkpoint 2: core requirements implemented (encrypted vault storage, master
+password authentication, CLI that never prints passwords unless `--reveal`).
+See `docs/PROGRESS.md`.
