@@ -147,9 +147,10 @@ is out of scope for this project.
 `ciphertext` is the AES-256-GCM encryption (ciphertext + 16-byte auth tag) of
 the JSON-serialized entry list. Header fields (`kdf`, `cipher.nonce`,
 `version`) are stored in the clear alongside the ciphertext — they're
-parameters, not secrets, and GCM's tag covers the ciphertext they were used
-to produce, not the header itself, so `version` is checked by the loader
-before any decryption is attempted.
+parameters, not secrets. As of Checkpoint 2 the version, KDF parameters and
+salt are passed to AES-GCM as associated data, so any change to them makes
+decryption fail. `version` is still checked by the loader before any
+decryption is attempted, and KDF parameters outside a safe range are rejected.
 
 **Why whole-vault AEAD rather than per-entry encryption**: at this project's
 scale (a personal vault, dozens to low hundreds of entries), re-encrypting
