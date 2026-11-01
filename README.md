@@ -50,8 +50,8 @@ details and the cryptographic rationale are in `docs/DESIGN.md`.
 Requirements: Python 3.11+, `pip`, git.
 
 ```bash
-git clone <this-repo-url>
-cd Security-Programming
+git clone https://github.com/ulvibalasov-glitch/Security-programming.git
+cd Security-programming
 python3 -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
 pip install -r requirements.txt   # argon2-cffi, cryptography
